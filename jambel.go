@@ -2,12 +2,15 @@ package jambel
 
 import (
 	"fmt"
-	"github.com/google/gousb"
 	"log"
+
+	"github.com/google/gousb"
 )
 
 const (
-	// Bus 020 Device 018: ID 0403:6001 Future Technology Devices International Limited usb serial converter  Serial: ftDIMF19
+	// Bus 020 Device 018: ID 0403:6001
+	// Future Technology Devices International Limited usb serial converter
+	// Serial: ftDIMF19
 	vendor  = 0x0403
 	product = 0x6001
 
@@ -47,7 +50,7 @@ type SerialJambel struct {
 	device   *gousb.Device
 	intf     *gousb.Interface
 	endpoint *gousb.OutEndpoint
-	// interface cleanup
+	// deferred interface cleanup
 	_releaseInterface func()
 }
 
@@ -55,8 +58,8 @@ type SerialJambel struct {
 // resources and closes the device.
 func (jmb *SerialJambel) Close() {
 	jmb._releaseInterface()
-	jmb.device.Close()
-	jmb.context.Close()
+	_ = jmb.device.Close()
+	_ = jmb.context.Close()
 }
 
 // send sends command to Jambel.
@@ -119,7 +122,9 @@ func NewSerialJambel() (*SerialJambel, error) {
 	}
 
 	// Detach the device from whichever process already has it.
-	_ = dev.SetAutoDetach(true)
+	if err = dev.SetAutoDetach(true); err != nil {
+		fmt.Errorf("could not auto-detach device: %v", err)
+	}
 
 	// Claim the default interface using a convenience function.
 	// The default interface is always #0 alt #0 in the currently active
