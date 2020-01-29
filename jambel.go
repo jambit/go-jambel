@@ -27,19 +27,33 @@ const (
 	BLINK_INVERSE = 4
 )
 
-type Jambel struct {
+type Jambel interface {
+
+	// Reset resets Jambel to all lights off
+	Reset()
+
+	// On switches [colour] on where colour is one of GREEN, RED or YELLOW
+	On(colour int)
+	Off(colour int)
+	Blink(colour int)
+	BlinkInverse(colour int)
+	Flash(colour int)
+	SetAll(green, yellow, red int)
+}
+
+type SerialJambel struct {
 	// Fields for interacting with the USB connection
-	context           *gousb.Context
-	device            *gousb.Device
-	intf              *gousb.Interface
-	endpoint          *gousb.OutEndpoint
+	context  *gousb.Context
+	device   *gousb.Device
+	intf     *gousb.Interface
+	endpoint *gousb.OutEndpoint
 	// interface cleanup
 	_releaseInterface func()
 }
 
 // Close releases claimed interface, config, context, all associated
 // resources and closes the device.
-func (jmb *Jambel) Close() {
+func (jmb *SerialJambel) Close() {
 	jmb._releaseInterface()
 	jmb.device.Close()
 	jmb.context.Close()
@@ -47,7 +61,7 @@ func (jmb *Jambel) Close() {
 
 // send sends command to Jambel.
 // Don't forget to terminate commands with "\n"!
-func (jmb *Jambel) send(cmd []byte) error {
+func (jmb *SerialJambel) send(cmd []byte) error {
 	numBytes, err := jmb.endpoint.Write(cmd)
 	if err != nil {
 		log.Printf("only %d bytes written, returned error is %v", numBytes, err)
@@ -58,42 +72,42 @@ func (jmb *Jambel) send(cmd []byte) error {
 }
 
 // Reset resets Jambel to all lights off
-func (jmb *Jambel) Reset() {
+func (jmb *SerialJambel) Reset() {
 	_ = jmb.send([]byte("reset\n"))
 }
 
 // On switches [colour] on where colour is one of GREEN, RED or YELLOW
-func (jmb *Jambel) On(colour int) {
+func (jmb *SerialJambel) On(colour int) {
 	cmd := fmt.Sprintf("set=%d,on\n", colour)
 	_ = jmb.send([]byte(cmd))
 }
 
-func (jmb *Jambel) Off(colour int) {
+func (jmb *SerialJambel) Off(colour int) {
 	cmd := fmt.Sprintf("set=%d,on\n", colour)
 	_ = jmb.send([]byte(cmd))
 }
 
-func (jmb *Jambel) Blink(colour int) {
+func (jmb *SerialJambel) Blink(colour int) {
 	cmd := fmt.Sprintf("set=%d,blink\n", colour)
 	_ = jmb.send([]byte(cmd))
 }
 
-func (jmb *Jambel) BlinkInverse(colour int) {
+func (jmb *SerialJambel) BlinkInverse(colour int) {
 	cmd := fmt.Sprintf("set=%d,blink_inverse\n", colour)
 	_ = jmb.send([]byte(cmd))
 }
 
-func (jmb *Jambel) Flash(colour int) {
+func (jmb *SerialJambel) Flash(colour int) {
 	cmd := fmt.Sprintf("set=%d,flash\n", colour)
 	_ = jmb.send([]byte(cmd))
 }
 
-func (jmb *Jambel) SetAll(green, yellow, red int) {
+func (jmb *SerialJambel) SetAll(green, yellow, red int) {
 	cmd := fmt.Sprintf("set_all=%d,%d,%d,0\n", red, yellow, green)
 	_ = jmb.send([]byte(cmd))
 }
 
-func NewSerialJambel() (*Jambel, error) {
+func NewSerialJambel() (*SerialJambel, error) {
 
 	// Initialize a new Context.
 	ctx := gousb.NewContext()
@@ -120,7 +134,7 @@ func NewSerialJambel() (*Jambel, error) {
 		return nil, err
 	}
 
-	jmb := Jambel{
+	jmb := SerialJambel{
 		context:           ctx,
 		device:            dev,
 		intf:              intf,
@@ -129,4 +143,3 @@ func NewSerialJambel() (*Jambel, error) {
 	}
 	return &jmb, nil
 }
-
