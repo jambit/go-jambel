@@ -1,32 +1,32 @@
 package main
 
 import (
-	"log"
 	"time"
+
+	"github.com/jambit/go-jambel"
 )
 
 func main() {
 
-	jmb, err := NewSerialJambel()
-	defer jmb.Close()
-	if err != nil {
-		log.Fatalf("could not open device: %v", err)
-	}
+	jmb := jambel.NewNetworkJambel("ampel10.dev.jambit.com:10001")
 
 	// traffic light phases
-	var commands = []func(){
-		func() { jmb.On(GREEN) },
-		func() { jmb.On(YELLOW) },
-		func() { jmb.Blink(YELLOW) },
-		func() { jmb.On(RED) },
-		func() { jmb.SetAll(OFF, ON, ON) },
+	var commands = []func() error{
+		func() error { return jmb.On(jambel.GREEN) },
+		func() error { return jmb.On(jambel.YELLOW) },
+		func() error { return jmb.Blink(jambel.YELLOW) },
+		func() error { return jmb.On(jambel.RED) },
+		func() error { return jmb.SetAll(jambel.OFF, jambel.ON, jambel.ON) },
 	}
 
-	var i = 0
+	_ = jmb.Reset()
 
+	var i = 0
 	for {
-		jmb.Reset()
-		commands[i]()
+
+		if err := commands[i](); err != nil {
+			panic(err)
+		}
 		time.Sleep(2 * time.Second)
 
 		i++
