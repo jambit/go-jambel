@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/jambit/go-jambel"
@@ -8,7 +10,12 @@ import (
 
 func main() {
 
-	jmb := jambel.NewNetworkJambel("ampel10.dev.jambit.com:10001")
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: %s ADDR", os.Args[0])
+		os.Exit(1)
+	}
+	addr := os.Args[1]
+	jmb := jambel.NewNetworkJambel(addr)
 
 	// traffic light phases
 	var commands = []func() error{

@@ -8,8 +8,9 @@ type TelnetConnection struct {
 	addr string
 }
 
-func (jmb *TelnetConnection) Send(cmd []byte) error {
-	conn, err := telnet.DialTo(jmb.addr)
+func (c *TelnetConnection) Send(cmd []byte) error {
+	conn, err := telnet.DialTo(c.addr)
+	defer conn.Close()
 	if err != nil {
 		return err
 	}
@@ -17,7 +18,7 @@ func (jmb *TelnetConnection) Send(cmd []byte) error {
 	return err
 }
 
-func (jmb *TelnetConnection) Close() {
+func (c *TelnetConnection) Close() {
 	// nothing to do here since we do not keep the connection open
 }
 
