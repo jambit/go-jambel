@@ -1,10 +1,14 @@
 module github.com/jambit/go-jambel
 
-go 1.13
+go 1.24.0
 
 require (
-	github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750
+	github.com/google/gousb v1.1.3
+	github.com/reiver/go-telnet v0.0.0-20250617105250-7da9ad70a2b2
+	github.com/sirupsen/logrus v1.9.3
+)
+
+require (
 	github.com/reiver/go-oi v1.0.0 // indirect
-	github.com/reiver/go-telnet v0.0.0-20180421082511-9ff0b2ab096e
-	github.com/sirupsen/logrus v1.8.3
+	golang.org/x/sys v0.39.0 // indirect
 )
