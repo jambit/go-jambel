@@ -2,6 +2,14 @@ package jambel
 
 import "fmt"
 
+// Jambel represents jambit's fast feedback device.
+type Jambel struct {
+	conn Connector
+}
+
+// Colour is the (typical) number of the colour module in the Jambel device.
+type Colour int
+
 const (
 	Red Colour = iota + 1
 	Yellow
@@ -29,43 +37,48 @@ type Connector interface {
 	Close()
 }
 
-type Jambel struct {
-	Connection ConnectionType
-}
-
 // Reset resets Jambel to all lights off
 func (jmb *Jambel) Reset() error {
-	return jmb.Connection.Send([]byte("reset\n"))
+	return jmb.conn.Send([]byte("reset\n"))
 }
 
-// On switches [colour] on where colour is one of GREEN, RED or YELLOW
-func (jmb *Jambel) On(colour int) error {
+// On switches colour module on.
+func (jmb *Jambel) On(colour Colour) error {
 	cmd := fmt.Sprintf("set=%d,on\n", colour)
-	return jmb.Connection.Send([]byte(cmd))
+	return jmb.conn.Send([]byte(cmd))
 }
 
 // Off switches colour module off.
 func (jmb *Jambel) Off(colour Colour) error {
 	cmd := fmt.Sprintf("set=%d,off\n", colour)
-	return jmb.Connection.Send([]byte(cmd))
+	return jmb.conn.Send([]byte(cmd))
 }
 
-func (jmb *Jambel) Blink(colour int) error {
+// Blink makes colour module blink.
+func (jmb *Jambel) Blink(colour Colour) error {
 	cmd := fmt.Sprintf("set=%d,blink\n", colour)
-	return jmb.Connection.Send([]byte(cmd))
+	return jmb.conn.Send([]byte(cmd))
 }
 
-func (jmb *Jambel) BlinkInverse(colour int) error {
+// BlinkInverse makes colour module blink inversely.
+func (jmb *Jambel) BlinkInverse(colour Colour) error {
 	cmd := fmt.Sprintf("set=%d,blink_inverse\n", colour)
-	return jmb.Connection.Send([]byte(cmd))
+	return jmb.conn.Send([]byte(cmd))
 }
 
-func (jmb *Jambel) Flash(colour int) error {
+// Flash makes colour module flash.
+func (jmb *Jambel) Flash(colour Colour) error {
 	cmd := fmt.Sprintf("set=%d,flash\n", colour)
-	return jmb.Connection.Send([]byte(cmd))
+	return jmb.conn.Send([]byte(cmd))
 }
 
-func (jmb *Jambel) SetAll(green, yellow, red int) error {
+// SetAll sets all three lights (Green, Yellow, Red) to the given states.
+func (jmb *Jambel) SetAll(green, yellow, red LightState) error {
 	cmd := fmt.Sprintf("set_all=%d,%d,%d,0\n", red, yellow, green)
-	return jmb.Connection.Send([]byte(cmd))
+	return jmb.conn.Send([]byte(cmd))
+}
+
+// Close closes the connection to the Jambel device.
+func (jmb *Jambel) Close() {
+	jmb.conn.Close()
 }

@@ -1,28 +1,54 @@
 package jambel
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/reiver/go-telnet"
+)
+
+var (
+	// ErrConnectionClosed is returned when trying to send data on a closed connection
+	ErrConnectionClosed = errors.New("connection is closed")
 )
 
 type TelnetConnection struct {
 	addr string
+	conn *telnet.Conn
+	mu   sync.Mutex
 }
 
 func (c *TelnetConnection) Send(cmd []byte) error {
-	conn, err := telnet.DialTo(c.addr)
-	defer conn.Close()
-	if err != nil {
-		return err
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn == nil {
+		return ErrConnectionClosed
 	}
-	_, err = conn.Write(cmd)
+
+	_, err := c.conn.Write(cmd)
 	return err
 }
 
 func (c *TelnetConnection) Close() {
-	// nothing to do here since we do not keep the connection open
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn != nil {
+		_ = c.conn.Close()
+		c.conn = nil
+	}
 }
 
-func NewNetworkJambel(url string) *Jambel {
-	conn := &TelnetConnection{url}
-	return &Jambel{Connection: conn}
+func NewNetworkJambel(url string) (*Jambel, error) {
+	conn, err := telnet.DialTo(url)
+	if err != nil {
+		return nil, err
+	}
+
+	telnetConn := &TelnetConnection{
+		addr: url,
+		conn: conn,
+	}
+	return &Jambel{conn: telnetConn}, nil
 }
