@@ -62,7 +62,7 @@ func NewSerialJambel() (*Jambel, error) {
 
 	// Detach the device from whichever process already has it.
 	if err = dev.SetAutoDetach(true); err != nil {
-		fmt.Errorf("could not auto-detach device: %v", err)
+		return nil, fmt.Errorf("could not auto-detach device: %w", err)
 	}
 
 	// Claim the default interface using a convenience function.
@@ -70,7 +70,7 @@ func NewSerialJambel() (*Jambel, error) {
 	// config.
 	intf, done, err := dev.DefaultInterface()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not claim default interface: %w", err)
 	}
 	// Open an OUT endpoint.
 	ep, err := intf.OutEndpoint(epOut)
