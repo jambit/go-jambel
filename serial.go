@@ -85,5 +85,5 @@ func NewSerialJambel() (*Jambel, error) {
 		endpoint:          ep,
 		_releaseInterface: done,
 	}
-	return &Jambel{Connection: conn}, nil
+	return &Jambel{conn: conn}, nil
 }
