@@ -3,20 +3,24 @@ package jambel
 import "fmt"
 
 const (
-	// colour modules
-	GREEN  = 3
-	YELLOW = 2
-	RED    = 1
-
-	// light module status
-	OFF           = 0
-	ON            = 1
-	BLINK         = 2
-	FLASH         = 3
-	BLINK_INVERSE = 4
+	Red Colour = iota + 1
+	Yellow
+	Green
 )
 
-type ConnectionType interface {
+// LightState represents the state of a light module.
+type LightState int
+
+const (
+	Off LightState = iota
+	On
+	Blink
+	Flash
+	BlinkInverse
+)
+
+// Connector implements how to communicate with a Jambel device.
+type Connector interface {
 	// Send sends a single command to the Jambel. Make sure that it is
 	// terminated with "\n".
 	Send(cmd []byte) error
