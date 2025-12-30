@@ -40,8 +40,9 @@ func (jmb *Jambel) On(colour int) error {
 	return jmb.Connection.Send([]byte(cmd))
 }
 
-func (jmb *Jambel) Off(colour int) error {
-	cmd := fmt.Sprintf("set=%d,on\n", colour)
+// Off switches colour module off.
+func (jmb *Jambel) Off(colour Colour) error {
+	cmd := fmt.Sprintf("set=%d,off\n", colour)
 	return jmb.Connection.Send([]byte(cmd))
 }
 
