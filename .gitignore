@@ -1,0 +1,5 @@
+# ignore binaries
+examples/traffic-light/traffic-light
+examples/mock-server/mock-server
+
+__debug_*
