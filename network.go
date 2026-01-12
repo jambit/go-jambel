@@ -85,8 +85,8 @@ func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
 				return
 			}
 			if n <= 0 {
-				resultChan <- result{data: data, err: nil}
-				return
+				// No data read but no error - continue reading
+				continue
 			}
 			
 			data = append(data, recvData[:n]...)
