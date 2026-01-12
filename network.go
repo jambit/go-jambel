@@ -92,7 +92,12 @@ func telnetReadWithContext(ctx context.Context, conn *telnet.Conn, expect []byte
 			// Check if context is cancelled before each read
 			select {
 			case <-ctx.Done():
-				resultChan <- result{data: data, err: ctx.Err()}
+				// Convert context errors to our custom error for consistency
+				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+					resultChan <- result{data: data, err: ErrReadTimeout}
+				} else {
+					resultChan <- result{data: data, err: ctx.Err()}
+				}
 				return
 			default:
 			}
@@ -128,6 +133,10 @@ func telnetReadWithContext(ctx context.Context, conn *telnet.Conn, expect []byte
 	case res := <-resultChan:
 		return res.data, res.err
 	case <-ctx.Done():
+		// Convert context errors to our custom error for consistency
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, ErrReadTimeout
+		}
 		return nil, ctx.Err()
 	}
 }
