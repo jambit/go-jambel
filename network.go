@@ -2,6 +2,7 @@ package jambel
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -66,6 +67,15 @@ func (c *TelnetConnection) Close() {
 // It implements timeout protection to prevent indefinite blocking if the connection
 // stops responding or never sends the expected terminator.
 func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultReadTimeout)
+	defer cancel()
+
+	return telnetReadWithContext(ctx, conn, expect)
+}
+
+// telnetReadWithContext reads from a Telnet session with context support.
+// The context can be used to control timeout and cancellation.
+func telnetReadWithContext(ctx context.Context, conn *telnet.Conn, expect []byte) ([]byte, error) {
 	// Use a channel to communicate the result from the reader goroutine
 	type result struct {
 		data []byte
@@ -79,6 +89,14 @@ func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
 		recvData := make([]byte, 1)
 		
 		for {
+			// Check if context is cancelled before each read
+			select {
+			case <-ctx.Done():
+				resultChan <- result{data: data, err: ctx.Err()}
+				return
+			default:
+			}
+
 			n, readErr := conn.Read(recvData)
 			if readErr != nil {
 				resultChan <- result{data: data, err: readErr}
@@ -105,12 +123,12 @@ func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
 		}
 	}()
 
-	// Wait for either the result or a timeout
+	// Wait for either the result or context cancellation
 	select {
 	case res := <-resultChan:
 		return res.data, res.err
-	case <-time.After(defaultReadTimeout):
-		return nil, ErrReadTimeout
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 }
 
