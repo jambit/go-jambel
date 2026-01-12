@@ -63,6 +63,14 @@ func (c *TelnetConnection) Close() {
 	}
 }
 
+// contextErrToReadErr converts context errors to our custom error types for consistency.
+func contextErrToReadErr(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return ErrReadTimeout
+	}
+	return err
+}
+
 // telnetRead reads from a Telnet session until the expected terminator is found.
 // It implements timeout protection to prevent indefinite blocking if the connection
 // stops responding or never sends the expected terminator.
@@ -92,12 +100,7 @@ func telnetReadWithContext(ctx context.Context, conn *telnet.Conn, expect []byte
 			// Check if context is cancelled before each read
 			select {
 			case <-ctx.Done():
-				// Convert context errors to our custom error for consistency
-				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-					resultChan <- result{data: data, err: ErrReadTimeout}
-				} else {
-					resultChan <- result{data: data, err: ctx.Err()}
-				}
+				resultChan <- result{data: data, err: contextErrToReadErr(ctx.Err())}
 				return
 			default:
 			}
@@ -133,11 +136,7 @@ func telnetReadWithContext(ctx context.Context, conn *telnet.Conn, expect []byte
 	case res := <-resultChan:
 		return res.data, res.err
 	case <-ctx.Done():
-		// Convert context errors to our custom error for consistency
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return nil, ErrReadTimeout
-		}
-		return nil, ctx.Err()
+		return nil, contextErrToReadErr(ctx.Err())
 	}
 }
 
