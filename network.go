@@ -89,7 +89,7 @@ func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
 				return
 			}
 			
-			data = append(data, recvData...)
+			data = append(data, recvData[:n]...)
 			
 			// Check if we've exceeded the maximum bytes limit
 			if len(data) > maxReadBytes {
@@ -110,7 +110,7 @@ func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
 	case res := <-resultChan:
 		return res.data, res.err
 	case <-time.After(defaultReadTimeout):
-		return out, ErrReadTimeout
+		return nil, ErrReadTimeout
 	}
 }
 
