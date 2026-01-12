@@ -1,7 +1,9 @@
 package jambel
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/reiver/go-telnet"
@@ -18,18 +20,26 @@ type TelnetConnection struct {
 	mu   sync.Mutex
 }
 
-func (c *TelnetConnection) Send(cmd []byte) error {
+// Send implements the Connector interface.
+func (c *TelnetConnection) Send(cmd []byte) ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if c.conn == nil {
-		return ErrConnectionClosed
+		return []byte{}, ErrConnectionClosed
 	}
 
+	fmt.Printf(">>> %s", cmd)
 	_, err := c.conn.Write(cmd)
-	return err
+	if err != nil {
+		return []byte{}, err
+	}
+	out, _ := telnetRead(c.conn, []byte("\n"))
+	fmt.Printf("<<< %s", out)
+	return out, err
 }
 
+// Close implements the Connector interface.
 func (c *TelnetConnection) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -38,6 +48,28 @@ func (c *TelnetConnection) Close() {
 		_ = c.conn.Close()
 		c.conn = nil
 	}
+}
+
+// telnetRead is a thin function reads from Telnet session. expect is
+// a string used as signal to stop reading.
+func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
+	recvData := make([]byte, 1)
+	var n int
+
+	for {
+		n, err = conn.Read(recvData)
+		if err != nil {
+			return out, err
+		}
+		if n <= 0 {
+			break
+		}
+		out = append(out, recvData...)
+		if bytes.Contains(out, expect) {
+			break
+		}
+	}
+	return out, nil
 }
 
 func NewNetworkJambel(url string) (*Jambel, error) {

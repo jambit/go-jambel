@@ -26,13 +26,15 @@ func main() {
 
 	// traffic light phases to iterate through
 	var commands = []func() error{
-		func() error { return jmb.On(jambel.Green) },
-		func() error { return jmb.On(jambel.Yellow) },
+		func() error { return jmb.SetAll(jambel.On, jambel.Off, jambel.Off) },
+		func() error { return jmb.SetAll(jambel.Off, jambel.On, jambel.Off) },
 		func() error { return jmb.Blink(jambel.Yellow) },
-		func() error { return jmb.On(jambel.Red) },
+		func() error { return jmb.SetAll(jambel.Off, jambel.Off, jambel.On) },
 		func() error { return jmb.SetAll(jambel.Off, jambel.On, jambel.On) },
 	}
 
+	version, _ := jmb.Version()
+	fmt.Printf("jambel version:\n%s\n", version)
 	_ = jmb.Reset()
 
 	var i = 0
