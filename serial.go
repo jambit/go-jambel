@@ -62,6 +62,9 @@ func NewSerialJambel() (*Jambel, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(devs) == 0 {
+		return nil, fmt.Errorf("no USB devices found for vendor %#04x product %#04x", vendor, product)
+	}
 
 	// FIXME: Handle multiple USB devices
 	device, err := devs[0].Open()
