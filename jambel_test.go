@@ -13,12 +13,12 @@ type mockConn struct {
 	fail bool
 }
 
-func (m *mockConn) Send(cmd []byte) error {
+func (m *mockConn) Write(cmd []byte) (int, error) {
 	if m.fail {
-		return errors.New("send error")
+		return 0, errors.New("send error")
 	}
 	m.sent = append(m.sent, cmd)
-	return nil
+	return len(cmd), nil
 }
 
 func (m *mockConn) Close() {}

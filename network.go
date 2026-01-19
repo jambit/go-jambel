@@ -18,16 +18,15 @@ type TelnetConnection struct {
 	mu   sync.Mutex
 }
 
-func (c *TelnetConnection) Send(cmd []byte) error {
+func (c *TelnetConnection) Write(cmd []byte) (int, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if c.conn == nil {
-		return ErrConnectionClosed
+		return 0, ErrConnectionClosed
 	}
 
-	_, err := c.conn.Write(cmd)
-	return err
+	return c.conn.Write(cmd)
 }
 
 func (c *TelnetConnection) Close() {
@@ -38,6 +37,14 @@ func (c *TelnetConnection) Close() {
 		_ = c.conn.Close()
 		c.conn = nil
 	}
+}
+
+func NewTelnetConnection(addr string) (*TelnetConnection, error) {
+	conn, err := telnet.DialTo(addr)
+	if err != nil {
+		return nil, err
+	}
+	return &TelnetConnection{addr: addr, conn: conn}, nil
 }
 
 func NewNetworkJambel(url string) (*Jambel, error) {
