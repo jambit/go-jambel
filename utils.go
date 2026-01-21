@@ -7,39 +7,52 @@ import (
 	"time"
 )
 
+const (
+	// readTimeout is the maximum time to wait for a read operation to complete
+	readTimeout = 5 * time.Second
+)
+
 // readUntil is a thin function that reads from an io.Reader. expect is
 // a byte slice used as signal to stop reading.
 func readUntil(conn io.Reader, expect []byte) (out []byte, err error) {
 	recvData := make([]byte, 1)
-	var n int
 
 	// Create a context with timeout to prevent infinite hangs
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
 	defer cancel()
 
 	// Channel to signal when read is complete
-	done := make(chan struct{})
+	type result struct {
+		data []byte
+		err  error
+	}
+	done := make(chan result, 1)
 	
 	go func() {
-		defer close(done)
+		var localOut []byte
+		var localErr error
+		
 		for {
-			n, err = conn.Read(recvData)
-			if err != nil {
-				return
+			n, readErr := conn.Read(recvData)
+			if readErr != nil {
+				localErr = readErr
+				break
 			}
 			if n <= 0 {
-				return
+				break
 			}
-			out = append(out, recvData...)
-			if bytes.Contains(out, expect) {
-				return
+			localOut = append(localOut, recvData[:n]...)
+			if bytes.Contains(localOut, expect) {
+				break
 			}
 		}
+		
+		done <- result{data: localOut, err: localErr}
 	}()
 
 	select {
-	case <-done:
-		return out, err
+	case res := <-done:
+		return res.data, res.err
 	case <-ctx.Done():
 		return out, ctx.Err()
 	}
