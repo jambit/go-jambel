@@ -33,6 +33,15 @@ func readUntil(conn io.Reader, expect []byte) (out []byte, err error) {
 		var localErr error
 		
 		for {
+			// Check if context is canceled before continuing
+			select {
+			case <-ctx.Done():
+				// Stop reading if context is done
+				done <- result{data: localOut, err: ctx.Err()}
+				return
+			default:
+			}
+			
 			n, readErr := conn.Read(recvData)
 			if readErr != nil {
 				localErr = readErr
@@ -54,6 +63,12 @@ func readUntil(conn io.Reader, expect []byte) (out []byte, err error) {
 	case res := <-done:
 		return res.data, res.err
 	case <-ctx.Done():
-		return out, ctx.Err()
+		// Wait a bit for the goroutine to clean up
+		select {
+		case res := <-done:
+			return res.data, res.err
+		case <-time.After(10 * time.Millisecond):
+			return nil, ctx.Err()
+		}
 	}
 }
