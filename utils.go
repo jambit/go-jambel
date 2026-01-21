@@ -10,6 +10,9 @@ import (
 const (
 	// readTimeout is the maximum time to wait for a read operation to complete
 	readTimeout = 5 * time.Second
+	
+	// goroutineCleanupTimeout is the maximum time to wait for goroutine cleanup
+	goroutineCleanupTimeout = 10 * time.Millisecond
 )
 
 // readUntil is a thin function that reads from an io.Reader. expect is
@@ -47,9 +50,6 @@ func readUntil(conn io.Reader, expect []byte) (out []byte, err error) {
 				localErr = readErr
 				break
 			}
-			if n <= 0 {
-				break
-			}
 			localOut = append(localOut, recvData[:n]...)
 			if bytes.Contains(localOut, expect) {
 				break
@@ -67,7 +67,7 @@ func readUntil(conn io.Reader, expect []byte) (out []byte, err error) {
 		select {
 		case res := <-done:
 			return res.data, res.err
-		case <-time.After(10 * time.Millisecond):
+		case <-time.After(goroutineCleanupTimeout):
 			return nil, ctx.Err()
 		}
 	}
