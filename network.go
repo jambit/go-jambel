@@ -2,7 +2,6 @@ package jambel
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/reiver/go-telnet"
@@ -28,13 +27,11 @@ func (c *TelnetConnection) Send(cmd []byte) ([]byte, error) {
 		return []byte{}, ErrConnectionClosed
 	}
 
-	fmt.Printf(">>> %s", cmd)
 	_, err := c.conn.Write(cmd)
 	if err != nil {
 		return []byte{}, err
 	}
-	out, _ := readUntil(c.conn, []byte("\n"))
-	fmt.Printf("<<< %s", out)
+	out, err := readUntil(c.conn, []byte("\n"))
 	return out, err
 }
 
