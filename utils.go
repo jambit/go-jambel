@@ -11,8 +11,10 @@ const (
 	// readTimeout is the maximum time to wait for a read operation to complete
 	readTimeout = 5 * time.Second
 	
-	// goroutineCleanupTimeout is the maximum time to wait for goroutine cleanup
-	goroutineCleanupTimeout = 10 * time.Millisecond
+	// goroutineCleanupTimeout is the maximum time to wait for goroutine cleanup.
+	// Note: This is a best-effort cleanup. If the underlying Read() is blocked,
+	// the goroutine may not terminate immediately.
+	goroutineCleanupTimeout = 100 * time.Millisecond
 )
 
 // readUntil is a thin function that reads from an io.Reader. expect is
