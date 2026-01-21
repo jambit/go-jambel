@@ -1,7 +1,6 @@
 package jambel
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -34,7 +33,7 @@ func (c *TelnetConnection) Send(cmd []byte) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	out, _ := telnetRead(c.conn, []byte("\n"))
+	out, _ := readUntil(c.conn, []byte("\n"))
 	fmt.Printf("<<< %s", out)
 	return out, err
 }
@@ -48,28 +47,6 @@ func (c *TelnetConnection) Close() {
 		_ = c.conn.Close()
 		c.conn = nil
 	}
-}
-
-// telnetRead is a thin function reads from Telnet session. expect is
-// a string used as signal to stop reading.
-func telnetRead(conn *telnet.Conn, expect []byte) (out []byte, err error) {
-	recvData := make([]byte, 1)
-	var n int
-
-	for {
-		n, err = conn.Read(recvData)
-		if err != nil {
-			return out, err
-		}
-		if n <= 0 {
-			break
-		}
-		out = append(out, recvData...)
-		if bytes.Contains(out, expect) {
-			break
-		}
-	}
-	return out, nil
 }
 
 func NewNetworkJambel(url string) (*Jambel, error) {
