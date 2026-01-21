@@ -2,7 +2,6 @@ package jambel
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/google/gousb"
 )
@@ -21,24 +20,25 @@ const (
 
 type SerialConnection struct {
 	// Fields for interacting with the USB connection
-	context  *gousb.Context
-	device   *gousb.Device
-	intf     *gousb.Interface
-	endpoint *gousb.OutEndpoint
+	context *gousb.Context
+	device  *gousb.Device
+	intf    *gousb.Interface
+
+	read  *gousb.InEndpoint
+	write *gousb.OutEndpoint
+
 	// deferred interface cleanup
 	_releaseInterface func()
 }
 
-// send sends command to Jambel.
+// Send sends command to Jambel.
 // Don't forget to terminate commands with "\n"!
-func (jmb *SerialConnection) Send(cmd []byte) error {
-	numBytes, err := jmb.endpoint.Write(cmd)
+func (jmb *SerialConnection) Send(cmd []byte) ([]byte, error) {
+	_, err := jmb.write.Write(cmd)
 	if err != nil {
-		log.Printf("only %d bytes written, returned error is %v", numBytes, err)
-	} else {
-		log.Printf("%d bytes successfully written", numBytes)
+		return nil, err
 	}
-	return err
+	return readUntil(jmb.read, []byte("\n"))
 }
 
 // Close releases claimed interface, config, context, all associated
@@ -65,15 +65,18 @@ func NewSerialJambel() (*Jambel, error) {
 		return nil, fmt.Errorf("could not auto-detach device: %w", err)
 	}
 
-	// Claim the default interface using a convenience function.
-	// The default interface is always #0 alt #0 in the currently active
-	// config.
+	// Claim the default interface using a convenience function. The default interface is always #0 alt #0
+	// in the currently active config.
 	intf, done, err := dev.DefaultInterface()
 	if err != nil {
 		return nil, fmt.Errorf("could not claim default interface: %w", err)
 	}
-	// Open an OUT endpoint.
-	ep, err := intf.OutEndpoint(epOut)
+
+	readEndpoint, err := intf.InEndpoint(epIn)
+	if err != nil {
+		return nil, err
+	}
+	writeEndpoint, err := intf.OutEndpoint(epOut)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +85,8 @@ func NewSerialJambel() (*Jambel, error) {
 		context:           ctx,
 		device:            dev,
 		intf:              intf,
-		endpoint:          ep,
+		read:              readEndpoint,
+		write:             writeEndpoint,
 		_releaseInterface: done,
 	}
 	return &Jambel{conn: conn}, nil
