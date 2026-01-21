@@ -18,18 +18,24 @@ type TelnetConnection struct {
 	mu   sync.Mutex
 }
 
-func (c *TelnetConnection) Send(cmd []byte) error {
+// Send implements the Connector interface.
+func (c *TelnetConnection) Send(cmd []byte) ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if c.conn == nil {
-		return ErrConnectionClosed
+		return []byte{}, ErrConnectionClosed
 	}
 
 	_, err := c.conn.Write(cmd)
-	return err
+	if err != nil {
+		return []byte{}, err
+	}
+	out, err := readUntil(c.conn, []byte("\n"))
+	return out, err
 }
 
+// Close implements the Connector interface.
 func (c *TelnetConnection) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
